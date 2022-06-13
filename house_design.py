@@ -2,7 +2,7 @@ import pygame
 import time
 import random
 from Furniture import Furniture
-
+import utils
 from house_config import *
 
 
@@ -30,7 +30,7 @@ class House:
 
     def label(self, msg, color, origin):
         label = FONT.render(msg, True, color)
-        self.window.blit(label, origin)
+        self.window.blit(label, [origin[0]-label.get_width()/2, origin[1]])
 
     def draw(self):
         # Draw background
@@ -56,6 +56,18 @@ class House:
                 furniture.origin, furniture.size])
             self.window.blit(furniture.img, furniture.rect)
             # self.label(furniture.name, GREEN, furniture.origin)
+
+        # Draw connecting line
+        if self.selected:
+            for furn in [x for x in self.furnitures if id(x) != id(self.selected)]:
+                print(self.selected.center)
+                print(furn.center)
+                pygame.draw.line(self.window, GREEN,
+                                 self.selected.center, furn.center, width=2)
+
+                d = utils.distance(self.selected.center, furn.center)
+                mid_point = utils.mid(self.selected.center, furn.center)
+                self.label(str(d), BLACK, mid_point)
 
         pygame.display.update()
 
@@ -120,7 +132,7 @@ class House:
                     if self.drag and self.selected:
                         # Check if selected obj overlap another obj:
                         self.selected.set_center(pygame.mouse.get_pos())
-                        self.resolve_overlap()
+                        # self.resolve_overlap()
 
             self.draw()
 

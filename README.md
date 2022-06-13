@@ -1,9 +1,12 @@
 Target:
 
 -   Create a game to design house.
--   Design must satisfy some user's constraints
 -   User could move/drag & drop shape around
+
+Next:
+
 -   User cad add/remove furniture, house size
+-   Design must satisfy some user's constraints
 
 Later:
 
