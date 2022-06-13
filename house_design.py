@@ -13,6 +13,7 @@ class House:
         self.clock = pygame.time.Clock()
         self.window = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
         self.window_rect = self.window.get_rect()
+        self.prev_pos = pygame.mouse.get_pos()
         pygame.display.set_caption('House Design')
 
         self.furnitures = [
@@ -127,11 +128,12 @@ class House:
                         overlap_furn = None
                         for furn in [x for x in self.furnitures if id(x) != id(self.selected)]:
                             if self.selected.enclosure.colliderect(furn.enclosure):
-                                print("Enclosure overlap")
-                                print(
-                                    f"{self.selected.enclosure} - {furn.enclosure}")
                                 overlap_furn = furn
                                 break
+
+                        # Get motion vector:
+                        moving_direction = utils.vector(
+                            self.prev_pos, pygame.mouse.get_pos())
 
                         vT = utils.vector(
                             self.selected.rect.center, pygame.mouse.get_pos())
@@ -139,13 +141,32 @@ class House:
                             # Determine relative position
                             rel_pos = utils.relative_pos(
                                 self.selected.rect, overlap_furn.rect)
-                            if rel_pos in ["left", "right"]:
-                                self.selected.rect.move_ip(0, vT[1])
-                            elif rel_pos in ["top", "bottom"]:
-                                self.selected.rect.move_ip(vT[0], 0)
+
+                            print(
+                                f"{moving_direction} - {overlap_furn} - {rel_pos}")
+                            is_move = False
+                            if rel_pos == "left" and utils.sign(moving_direction[0]) != 1:
+                                is_move = True
+
+                            elif rel_pos == "right" and utils.sign(moving_direction[0]) != -1:
+                                is_move = True
+
+                            elif rel_pos == "top" and utils.sign(moving_direction[1]) != 1:
+                                is_move = True
+
+                            elif rel_pos == "bottom" and utils.sign(moving_direction[1]) != -1:
+                                is_move = True
+
+                            if is_move:
+                                self.selected.rect.move_ip(vT[0], vT[1])
+
                         else:
                             self.selected.rect.move_ip(vT[0], vT[1])
+
                         self.selected.rect.clamp_ip(self.window_rect)
+
+                        # Save previous mouse position
+                        self.prev_pos = pygame.mouse.get_pos()
 
             self.draw()
 
