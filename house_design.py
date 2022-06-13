@@ -12,6 +12,7 @@ class House:
         pygame.init()
         self.clock = pygame.time.Clock()
         self.window = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+        self.window_rect = self.window.get_rect()
         pygame.display.set_caption('House Design')
 
         self.furnitures = [
@@ -36,37 +37,31 @@ class House:
         # Draw background
         self.window.blit(IMG_BG, (0, 0))
 
-        # Draw border
-        # Border coordinates
-        # top_left = [0, 0]
-        # top_right = [INNER_WIDTH, 0]
-        # bot_right = [INNER_WIDTH, INNER_HEIGHT]
-        # bot_left = [0, INNER_HEIGHT]
-        # pygame.draw.lines(self.window, BLACK, True, [
-        #                   top_left, top_right, bot_right, bot_left], width=2)
-
         # Draw furniture
         for furniture in self.furnitures:
-            # Draw enclosure
-            # furniture.enclosure = pygame.draw.rect(self.window, furniture.encl_color, [
-            #     furniture.encl_origin, furniture.encl_size])
+            # Draw furniture for the first time
+            if furniture.rect == None:
+                furniture.rect = pygame.draw.rect(self.window, furniture.color, [
+                    furniture.origin, furniture.size])
 
-            # Draw furniture
-            furniture.rect = pygame.draw.rect(self.window, furniture.color, [
-                furniture.origin, furniture.size])
+            # Draw enclosure
+            furniture.enclosure = furniture.rect.copy()
+            furniture.enclosure.inflate_ip(10, 10)
+            pygame.draw.rect(self.window, YELLOW, furniture.enclosure)
+
+            # Update furniture frame
             self.window.blit(furniture.img, furniture.rect)
-            # self.label(furniture.name, GREEN, furniture.origin)
+            # self.label(furniture.name, GREEN, furniture.rect.center)
 
         # Draw connecting line
         if self.selected:
             for furn in [x for x in self.furnitures if id(x) != id(self.selected)]:
-                print(self.selected.center)
-                print(furn.center)
                 pygame.draw.line(self.window, GREEN,
-                                 self.selected.center, furn.center, width=2)
+                                 self.selected.rect.center, furn.rect.center, width=2)
 
-                d = utils.distance(self.selected.center, furn.center)
-                mid_point = utils.mid(self.selected.center, furn.center)
+                d = utils.distance(self.selected.rect.center, furn.rect.center)
+                mid_point = utils.mid(
+                    self.selected.rect.center, furn.rect.center)
                 self.label(str(d), BLACK, mid_point)
 
         pygame.display.update()
@@ -119,20 +114,38 @@ class House:
                     for furniture in self.furnitures:
                         if furniture.rect.collidepoint(event.pos):
                             self.selected = furniture
-                            self.selected.set_center(pygame.mouse.get_pos())
-                            self.resolve_overlap()
+                            self.selected.rect.center = pygame.mouse.get_pos()
                             break
 
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    if self.selected:
-                        self.resolve_overlap()
                     self.drag, self.selected = False, None
 
                 elif event.type == pygame.MOUSEMOTION:
                     if self.drag and self.selected:
                         # Check if selected obj overlap another obj:
-                        self.selected.set_center(pygame.mouse.get_pos())
-                        # self.resolve_overlap()
+                        # If enclosure is overlap, if we move object toward another object => Not allow
+                        overlap_furn = None
+                        for furn in [x for x in self.furnitures if id(x) != id(self.selected)]:
+                            if self.selected.enclosure.colliderect(furn.enclosure):
+                                print("Enclosure overlap")
+                                print(
+                                    f"{self.selected.enclosure} - {furn.enclosure}")
+                                overlap_furn = furn
+                                break
+
+                        vT = utils.vector(
+                            self.selected.rect.center, pygame.mouse.get_pos())
+                        if overlap_furn:
+                            # Determine relative position
+                            rel_pos = utils.relative_pos(
+                                self.selected.rect, overlap_furn.rect)
+                            if rel_pos in ["left", "right"]:
+                                self.selected.rect.move_ip(0, vT[1])
+                            elif rel_pos in ["top", "bottom"]:
+                                self.selected.rect.move_ip(vT[0], 0)
+                        else:
+                            self.selected.rect.move_ip(vT[0], vT[1])
+                        self.selected.rect.clamp_ip(self.window_rect)
 
             self.draw()
 
